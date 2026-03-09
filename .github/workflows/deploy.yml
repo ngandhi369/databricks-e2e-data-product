@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  deploy:
+  deploy_bundle_to_databricks:
     runs-on: ubuntu-latest
 
     env:
