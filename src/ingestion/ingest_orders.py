@@ -1,10 +1,12 @@
+import os
+
 from pyspark.sql import SparkSession
-from utils.config import get_table # udf function
+from utils.config import get_table, get_file_path # udf function
 
 spark = SparkSession.builder.getOrCreate()
 
 # Volume file path. Please upload the file before this
-file_path = "dbfs:/Volumes/nirdosh_catalog/nirdosh_schema/nirdosh_volume/orders.csv"
+file_path = get_file_path("orders") # path taken from databricks.yml variables section. Set this variable in the dev/prod targets based on environments.
 
 bronze_df = spark.read.format("csv")\
     .option(header=True)\

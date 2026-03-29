@@ -1,24 +1,36 @@
 # This is a Databricks asset bundle definition for nirdosh_asset_bundle.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: nirdosh_asset_bundle
+  name: nirdosh_dab
   uuid: 1de87a6f-b896-418d-b3a9-b44c0227cea0
+
+  tags:
+    project: city-order
+    owner: nirdosh
+    phase: phase-1
 
 include:
   - resources/*.yml
   - resources/*/*.yml
+
+sync:
+  include:
+    - src/**
 
 # artifacts:
 #   python_artifact:
 #     type: whl
 #     build: uv build --wheel
 
-# Variable declarations. These variables are assigned in the dev/prod targets below.
+# Variable declarations. 
+# These variables are assigned values in the dev/prod targets below based on environments
 variables:
   catalog:
     description: The catalog to use
   schema:
     description: The schema to use
+  volume_path:
+    description: The file path to use
 
 targets:
   dev:
@@ -30,9 +42,12 @@ targets:
     default: true
     workspace:
       host: https://dbc-14ad825f-2de6.cloud.databricks.com
+      root_path: /Workspace/Users/nirdoshgandhi02@gmail.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: asset_bundle_catalog
-      schema: asset_bundle_schema
+      volume_path: "dbfs:/Volumes/nirdosh_catalog_dev/nirdosh_schema_dev/nirdosh_volume_dev/"
+      catalog: nirdosh_catalog_dev
+      schema: nirdosh_schema_dev
+
   prod:
     mode: production 
     workspace:
@@ -40,8 +55,9 @@ targets:
       # We explicitly deploy to /Workspace/Users/nirdoshgandhi02@gmail.com to make sure we only have a single copy.
       root_path: /Workspace/Users/nirdoshgandhi02@gmail.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: asset_bundle_catalog
-      schema: prod
+      volume_path: "dbfs:/Volumes/nirdosh_catalog_prod/nirdosh_schema_prod/nirdosh_volume_prod/"
+      catalog: nirdosh_catalog_prod
+      schema: nirdosh_schema_prod
     permissions:
       - user_name: nirdoshgandhi02@gmail.com
         level: CAN_MANAGE
