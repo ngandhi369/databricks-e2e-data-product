@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from src.utils.config import get_table
+from config import get_table
 
 spark = SparkSession.builder.getOrCreate()
 

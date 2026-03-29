@@ -1,19 +1,19 @@
-import sys
-import os
-
-# Add project root dynamically
-project_root = os.path.dirname(os.path.dirname(os.getcwd()))
-print(f"project_root:{project_root}")
-if project_root not in sys.path:
-    sys.path.append(project_root)
-from src.utils.config import get_table, get_file_path
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 
 from pyspark.sql import SparkSession
+from src.config import get_config
 
 spark = SparkSession.builder.getOrCreate()
 
-# Volume file path. Please upload the file before this
-file_path = get_file_path("orders") # path taken from databricks.yml variables section. Set this variable in the dev/prod targets based on environments.
+config = get_config()
+
+catalog = config["catalog"]
+schema = config["schema"]
+volume_path = config["volume_path"]
+
+file_path = f"{volume_path}orders.csv"
+
 
 bronze_df = spark.read.format("csv")\
     .option("header", "true")\

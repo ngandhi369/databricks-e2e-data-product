@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import row_number, upper, col, rank, sum as _sum, count, max
 from pyspark.sql.window import Window
 
-from src.utils.config import get_table # udf function
+from config import get_table # udf function
 
 spark = SparkSession.builder.getOrCreate()
 

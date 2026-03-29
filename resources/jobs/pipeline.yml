@@ -1,3 +1,11 @@
+common_params: &common_params
+  - "--catalog"
+  - ${var.catalog}
+  - "--schema"
+  - ${var.schema}
+  - "--volume_path"
+  - ${var.volume_path}
+  
 resources:
   jobs:
     city_order_pipeline:
@@ -13,13 +21,9 @@ resources:
       
       tasks:
         - task_key: ingest
-          notebook_task:
-            notebook_path: src/main
-            base_parameters:
-              VOLUME_PATH: ${var.volume_path}
-              CATALOG: ${var.catalog}
-              SCHEMA: ${var.schema}
-              ENV: ${bundle.target}
+          spark_python_task:
+            python_file: ../../src/ingestion/ingest_orders.py
+            parameters: *common_params
           environment_key: default
         
         - task_key: transform
@@ -27,6 +31,7 @@ resources:
             - task_key: ingest
           spark_python_task:
             python_file: ../../src/transformation/transform_orders.py
+            parameters: *common_params
           environment_key: default
 
         - task_key: validate
@@ -34,6 +39,7 @@ resources:
             - task_key: transform
           spark_python_task:
             python_file: ../../src/validation/validate_orders.py
+            parameters: *common_params
           environment_key: default
         
       environments:
