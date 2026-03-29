@@ -2,6 +2,11 @@ resources:
   jobs:
     city_order_pipeline:
       name: city-order-pipeline
+
+      tags:
+        project: city-order
+        owner: nirdosh
+        phase: phase-1
       
       tasks:
         - task_key: ingest

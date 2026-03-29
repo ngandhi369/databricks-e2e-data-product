@@ -4,11 +4,6 @@ bundle:
   name: nirdosh_dab
   uuid: 1de87a6f-b896-418d-b3a9-b44c0227cea0
 
-  tags:
-    project: city-order
-    owner: nirdosh
-    phase: phase-1
-
 include:
   - resources/*.yml
   - resources/*/*.yml
