@@ -1,7 +1,10 @@
+import sys
 import os
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from pyspark.sql import SparkSession
-from src.utils.config import get_table, get_file_path # udf function
+from utils.config import get_table, get_file_path
 
 spark = SparkSession.builder.getOrCreate()
 
