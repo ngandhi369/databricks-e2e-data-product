@@ -12,6 +12,7 @@ catalog = config["catalog"]
 schema = config["schema"]
 volume_path = config["volume_path"]
 
+# Volume file
 file_path = f"{volume_path}orders.csv"
 
 
@@ -30,6 +31,6 @@ bronze_df = bronze_df.selectExpr(
 )
 
 # Writing to the bronze layer.  
-bronze_df.write.mode("overwrite").saveAsTable(get_table("bronze_orders"))
+bronze_df.write.mode("overwrite").saveAsTable(f"{catalog}.{schema}.bronze_orders")
 
 print("✅ Bronze created...!")
