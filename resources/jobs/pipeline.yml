@@ -6,21 +6,21 @@ resources:
       tasks:
         - task_key: ingest
           spark_python_task:
-            python_file: ../src/ingestion/ingest_orders.py
+            python_file: ../../src/ingestion/ingest_orders.py
           environment_key: default
         
         - task_key: transform
           depends_on:
             - task_key: ingest
           spark_python_task:
-            python_file: ../src/transformation/transform_orders.py
+            python_file: ../../src/transformation/transform_orders.py
           environment_key: default
 
         - task_key: validate
           depends_on: 
             - task_key: transform
           spark_python_task:
-            python_file: ../src/validation/validate_orders.py
+            python_file: ../../src/validation/validate_orders.py
           environment_key: default
         
       environments:
