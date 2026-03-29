@@ -35,7 +35,7 @@ silver_df = silver_df \
     .withColumn("order_month", month("order_date")) \
     .withColumn("order_year", year("order_date"))
 
-silver_df.write.mode("overwrite").saveAsTable(f"{catalog}.{schema}.silver_orders")
+silver_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{catalog}.{schema}.silver_orders")
 
 print("✅ Silver created (clean + enriched)")
 
@@ -69,6 +69,6 @@ gold_df = customer_df \
     .withColumn("city_rank", rank().over(city_window)) \
     .withColumn("overall_rank", rank().over(overall_window))
 
-gold_df.write.mode("overwrite").saveAsTable(f"{catalog}.{schema}.gold_orders")
+gold_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{catalog}.{schema}.gold_orders")
 
 print("✅ Gold created...!")
