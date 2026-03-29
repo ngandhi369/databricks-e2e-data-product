@@ -1,10 +1,11 @@
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root dynamically
+sys.path.append(os.getcwd())
 
 from pyspark.sql import SparkSession
-from utils.config import get_table, get_file_path
+from src.utils.config import get_table, get_file_path
 
 spark = SparkSession.builder.getOrCreate()
 
