@@ -23,7 +23,7 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | bash
 
       - name: Validate bundle
-        run: databricks bundle validate
+        run: databricks bundle validate --target dev
 
       - name: Deploy bundle
         run: databricks bundle deploy --target dev
