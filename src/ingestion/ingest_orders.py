@@ -11,9 +11,7 @@ if project_root not in sys.path:
 
 from src.utils.config import get_table, get_file_path
 
-
 from pyspark.sql import SparkSession
-from src.utils.config import get_table, get_file_path
 
 spark = SparkSession.builder.getOrCreate()
 
