@@ -3,12 +3,9 @@ import os
 
 # Add project root dynamically
 project_root = os.path.dirname(os.path.dirname(os.getcwd()))
-
 print(f"project_root:{project_root}")
-
 if project_root not in sys.path:
     sys.path.append(project_root)
-
 from src.utils.config import get_table, get_file_path
 
 from pyspark.sql import SparkSession

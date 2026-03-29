@@ -1,12 +1,19 @@
 import os
 
-env = os.getenv("ENV", "dev")  # default = dev
+dbutils.widgets.text("VOLUME_PATH", "")
+dbutils.widgets.text("CATALOG", "")
+dbutils.widgets.text("SCHEMA", "")
+dbutils.widgets.text("ENV", "dev")
 
-catalog = os.getenv("CATALOG")
-schema = os.getenv("SCHEMA")
+volume_path = dbutils.widgets.get("VOLUME_PATH")
+catalog = dbutils.widgets.get("CATALOG")
+schema = dbutils.widgets.get("SCHEMA")
+env = dbutils.widgets.get("ENV")
 
-volume_path = os.getenv("volume_path")
-
+print(f"VOLUME_PATH:{volume_path}")
+print(f"CATALOG:{catalog}")
+print(f"SCHEMA:{schema}")
+print(f"ENV:{env}")
 
 def get_table(name):
     return f"{catalog}.{schema}.{name}"

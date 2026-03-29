@@ -13,8 +13,13 @@ resources:
       
       tasks:
         - task_key: ingest
-          spark_python_task:
-            python_file: ../../src/ingestion/ingest_orders.py
+          notebook_task:
+            notebook_path: src/main
+            base_parameters:
+              VOLUME_PATH: ${var.volume_path}
+              CATALOG: ${var.catalog}
+              SCHEMA: ${var.schema}
+              ENV: ${bundle.target}
           environment_key: default
         
         - task_key: transform
