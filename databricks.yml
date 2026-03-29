@@ -49,12 +49,12 @@ targets:
     mode: production 
     workspace:
       host: https://dbc-14ad825f-2de6.cloud.databricks.com
-      # We explicitly deploy to /Workspace/Users/nirdoshgandhi02@gmail.com to make sure we only have a single copy.
+      # We explicitly deploy to /Workspace/Users/gandhinirdosh@gmail.com to make sure we only have a single copy.
       root_path: /Shared/city-orders/${bundle.name}/${bundle.target}
     variables:
       volume_path: "dbfs:/Volumes/nirdosh_catalog_prod/nirdosh_schema_prod/nirdosh_volume_prod/"
       catalog: nirdosh_catalog_prod
       schema: nirdosh_schema_prod
     permissions:
-      - group_name: data_engineering
+      - group_name: gandhinirdosh@gmail.com
         level: CAN_VIEW
