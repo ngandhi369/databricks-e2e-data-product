@@ -19,8 +19,8 @@ spark = SparkSession.builder.getOrCreate()
 file_path = get_file_path("orders") # path taken from databricks.yml variables section. Set this variable in the dev/prod targets based on environments.
 
 bronze_df = spark.read.format("csv")\
-    .option(header=True)\
-    .option(inferSchema=True)\
+    .option("header", "true")\
+    .option("inferSchema", "true")\
     .load(file_path)
 
 # Type casting to ensure data consistency and quality before writing to the bronze layer
