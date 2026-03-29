@@ -11,6 +11,10 @@ resources:
     city_order_pipeline:
       name: city-order-pipeline
 
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?"   # every hour
+        timezone_id: "Asia/Kolkata"
+
       permissions:
         - group_name: nirdosh_job_runners_group
           level: CAN_MANAGE_RUN
@@ -18,6 +22,18 @@ resources:
       tags:
         project: city-order
         owner: nirdosh
+
+      # Job-level notifications
+      email_notifications:
+        on_start:
+          - nirdoshgandhi02@gmail.com
+        on_success:
+          - nirdoshgandhi02@gmail.com
+        on_failure:
+          - nirdoshgandhi02@gmail.com
+      
+      # Job timeout set to 5 minutes for demonstration purposes.
+      timeout_seconds: 300  
       
       tasks:
         - task_key: ingest
@@ -25,7 +41,10 @@ resources:
             python_file: ../../src/ingestion/ingest_orders.py
             parameters: *common_params
           environment_key: default
-          max_retries: 0
+          max_retries: 1
+          min_retry_interval_millis: 10000 # Minimum retry interval of 10 seconds between retries. 
+          retry_on_timeout: true # Task will be retried if it hits the 5 minute timeout, up to 2 retries.
+          timeout_seconds: 300 # Task must finish in 5 minutes, or it fails/retries
         
         - task_key: transform
           depends_on:
@@ -34,6 +53,10 @@ resources:
             python_file: ../../src/transformation/transform_orders.py
             parameters: *common_params
           environment_key: default
+          max_retries: 1
+          min_retry_interval_millis: 10000 # Minimum retry interval of 10 seconds between retries. 
+          retry_on_timeout: true # Task will be retried if it hits the 5 minute timeout, up to 2 retries.
+          timeout_seconds: 300 # Task must finish in 5 minutes, or it fails/retries
 
         - task_key: validate
           depends_on: 
@@ -42,7 +65,12 @@ resources:
             python_file: ../../src/validation/validate_orders.py
             parameters: *common_params
           environment_key: default
+          max_retries: 1
+          min_retry_interval_millis: 10000 # Minimum retry interval of 10 seconds between retries. 
+          retry_on_timeout: true # Task will be retried if it hits the 5 minute timeout, up to 2 retries.
+          timeout_seconds: 300 # Task must finish in 5 minutes, or it fails/retries
         
+      # This is only needed if explicitly tied to serverless configs
       environments:
         - environment_key: default
           spec:
