@@ -1,7 +1,7 @@
 import os
 
 from pyspark.sql import SparkSession
-from utils.config import get_table, get_file_path # udf function
+from src.utils.config import get_table, get_file_path # udf function
 
 spark = SparkSession.builder.getOrCreate()
 
