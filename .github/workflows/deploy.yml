@@ -27,3 +27,6 @@ jobs:
 
       - name: Deploy bundle
         run: databricks bundle deploy --target dev
+
+      - name: Run data pipeline
+        run: databricks bundle city_order_pipeline --target dev
