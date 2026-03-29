@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: databricks-dev
 
+    concurrency:
+      group: databricks-bundle-deploy-dev
+      cancel-in-progress: true
+
     env:
       DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}

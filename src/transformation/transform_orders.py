@@ -20,7 +20,7 @@ bronze_df = spark.read.table(f"{catalog}.{schema}.bronze_orders")
 
 # --------------- Transformation Logic: SILVER LAYER ---------------
 
-window_spec = Window.partitionBy("customer_id").orderBy(col("order_date").desc())
+window_spec = Window.partitionBy("id").orderBy(col("order_date").desc())
 
 silver_df = bronze_df.withColumn("rn", row_number().over(window_spec))\
     .filter(col("rn") == 1)\
