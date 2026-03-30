@@ -33,6 +33,7 @@ print("✅ file copied to volume...!")
 
 
 
+
 bronze_df = spark.read.format("csv")\
     .option("header", "true")\
     .option("inferSchema", "true")\
