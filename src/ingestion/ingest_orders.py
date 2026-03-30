@@ -23,12 +23,11 @@ while base_path and not base_path.endswith("files"):
     base_path = os.path.dirname(base_path)
 
 source_file = os.path.join(base_path, "data", "orders.csv")
-destination_volume_path = f"{volume_path}orders.csv"
+volume_file_path = f"{volume_path}orders.csv"
 
-print(f"📂 Copying file from {source_file} → {destination_volume_path}")
+print(f"📂 Copying file from {source_file} → {volume_file_path}")
 
-dbutils.fs.cp(source_file, destination_volume_path)
-
+dbutils.fs.cp(source_file, volume_file_path)
 print("✅ file copied to volume...!")
 
 
@@ -37,7 +36,7 @@ print("✅ file copied to volume...!")
 bronze_df = spark.read.format("csv")\
     .option("header", "true")\
     .option("inferSchema", "true")\
-    .load(file_path)
+    .load(volume_file_path)
 
 # Type casting to ensure data consistency and quality before writing to the bronze layer
 bronze_df = bronze_df.selectExpr(
