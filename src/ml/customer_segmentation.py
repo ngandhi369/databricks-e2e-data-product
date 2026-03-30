@@ -1,4 +1,5 @@
-from unittest import result
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
@@ -6,19 +7,15 @@ from pyspark.sql.functions import col, when
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.clustering import KMeans
 
+from src.config import get_config
+
+config = get_config()
 spark = SparkSession.builder.getOrCreate()
 
-import argparse
+catalog = config["catalog"]
+schema = config["schema"]
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--catalog")
-parser.add_argument("--schema")
-args = parser.parse_args()
-
-catlog = args.catalog
-schema = args.schema
-
-gold_orders_df = spark.read.table(f"{catlog}.{schema}.gold_orders")
+gold_orders_df = spark.read.table(f"{catalog}.{schema}.gold_orders")
 
 feature_df = gold_orders_df.select("total_orders", "total_spent", "avg_order_value", "days_since_last_order").dropna()
 
@@ -50,7 +47,7 @@ result_df = result_df.withColumn(
 )
 
 
-result_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{catlog}.{schema}.customer_segments")
+result_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{catalog}.{schema}.customer_segments")
 
 print("✅ Customer segmentation completed...!")
 
