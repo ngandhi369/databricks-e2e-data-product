@@ -72,7 +72,7 @@ resources:
 
         - task_key: ml_segmentation
           depends_on: 
-            - task_key: validation
+            - task_key: validate
           spark_python_task:
             python_file: ../../src/ml/customer_segmentation.py
             parameters: *common_params
