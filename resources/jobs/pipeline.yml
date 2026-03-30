@@ -69,6 +69,18 @@ resources:
           min_retry_interval_millis: 10000 # Minimum retry interval of 10 seconds between retries. 
           retry_on_timeout: true # Task will be retried if it hits the 5 minute timeout, up to 2 retries.
           timeout_seconds: 300 # Task must finish in 5 minutes, or it fails/retries
+
+        - task_key: ml_segmentation
+          depends_on: 
+            - task_key: validation
+          spark_python_task:
+            python_file: ../../src/ml/customer_segmentation.py
+            parameters: *common_params
+          environment_key: default
+          max_retries: 1
+          min_retry_interval_millis: 30000 # Minimum retry interval of 30 seconds between retries. 
+          retry_on_timeout: true # Task will be retried if it hits the 10 minute timeout, up to 2 retries.
+          timeout_seconds: 600 # Task must finish in 10 minutes, or it fails/retries
         
       # This is only needed if explicitly tied to serverless configs
       environments:
