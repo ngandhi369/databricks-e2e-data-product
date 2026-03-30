@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, shutil
 sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 
 from pyspark.sql import SparkSession
@@ -12,8 +12,25 @@ catalog = config["catalog"]
 schema = config["schema"]
 volume_path = config["volume_path"]
 
-# Volume file
-file_path = f"{volume_path}orders.csv"
+
+
+# Get the current working directory
+cwd = os.getcwdir()
+
+# Traverse up the directory tree until we find the "files" directory in deployed bundle on workspace
+base_path = cwd
+while base_path and not base_path.endswith("files"):
+    base_path = os.path.dirname(base_path)
+
+source_file = os.path.join(base_path, "data", "orders.csv")
+destination_volume_path = f"{volume_path}orders.csv"
+
+print(f"📂 Copying file from {source_file} → {destination_volume_path}")
+
+dbutils.fs.cp(source_file, destination_volume_path)
+
+print("✅ file copied to volume...!")
+
 
 
 bronze_df = spark.read.format("csv")\

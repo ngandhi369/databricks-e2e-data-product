@@ -25,15 +25,13 @@ resources:
 
       # Job-level notifications
       email_notifications:
-        on_start:
-          - nirdoshgandhi02@gmail.com
         on_success:
           - nirdoshgandhi02@gmail.com
         on_failure:
           - nirdoshgandhi02@gmail.com
       
-      # Job timeout set to 5 minutes for demonstration purposes.
-      timeout_seconds: 300  
+      # Job timeout set to 10 minutes for demonstration purposes.
+      timeout_seconds: 600  
       
       tasks:
         - task_key: ingest

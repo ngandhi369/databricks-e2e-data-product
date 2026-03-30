@@ -17,7 +17,7 @@ schema = config["schema"]
 
 gold_orders_df = spark.read.table(f"{catalog}.{schema}.gold_orders")
 
-feature_df = gold_orders_df.select("total_orders", "total_spent", "avg_order_value", "days_since_last_order").dropna()
+feature_df = gold_orders_df.select("customer_id", "total_orders", "total_spent", "avg_order_value", "days_since_last_order").dropna()
 
 
 # Converting to features vector for ML model input
@@ -35,7 +35,11 @@ clustered_df = model.transform(final_df)
 
 
 # Joining clustered_df with gold_orders_df to get customer_id and city back in the final output
-result_df = gold_orders_df.join(clustered_df.select("features", "prediction"), on="features", how="inner")
+result_df = gold_orders_df.join(
+    clustered_df.select("customer_id", "prediction"),
+    on="customer_id",
+    how="inner"
+)
 
 
 # Mapping cluster predictions to meaningful segment labels
