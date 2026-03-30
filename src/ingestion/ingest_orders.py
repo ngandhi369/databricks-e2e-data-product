@@ -15,7 +15,7 @@ volume_path = config["volume_path"]
 
 
 # Get the current working directory
-cwd = os.getcwdir()
+cwd = os.getcwd()
 
 # Traverse up the directory tree until we find the "files" directory in deployed bundle on workspace
 base_path = cwd
