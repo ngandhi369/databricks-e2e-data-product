@@ -1,42 +1,42 @@
-import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
-
 from fastapi import FastAPI
 from databricks.connect import DatabricksSession
-from src.config import get_config
 
 app = FastAPI()
 
 # Create spark session
 spark = DatabricksSession.builder.profile("DEFAULT").serverless(True).getOrCreate()
 
-# CATALOG = "main"
-# SCHEMA = "city_order_dev"
-
-config = get_config()
-
-catalog = config["catalog"]
-schema = config["schema"]
-
+CATALOG = "nirdosh_catalog_dev"
+SCHEMA = "nirdosh_schema_dev"
 
 @app.get("/top-customers")
 def top_customers():
-    df = spark.sql(f"""
-        SELECT customer_id, city, total_spent
-        FROM {CATALOG}.{SCHEMA}.gold_customer_metrics
-        ORDER BY total_spent DESC
-        LIMIT 10
-    """)
+    try:
+        print("🚀 API called")
 
-    return [row.asDict() for row in df.collect()]
+        df = spark.sql(f"""
+            SELECT customer_id, city, total_spent
+            FROM {CATALOG}.{SCHEMA}.customer_segments
+            ORDER BY total_spent DESC
+            LIMIT 10
+        """)
 
+        result = [row.asDict() for row in df.collect()]
+
+        print("✅ Query success")
+        return result
+
+    except Exception as e:
+        print("❌ ERROR:", str(e))
+        return {"error": str(e)}
+    
 
 
 @app.get("/customer-segments")
 def customer_segments():
     df = spark.sql(f"""
         SELECT customer_cluster, COUNT(*) as count
-        FROM {CATALOG}.{SCHEMA}.gold_customer_segments
+        FROM {CATALOG}.{SCHEMA}.customer_segments
         GROUP BY customer_cluster
     """)
 
@@ -48,7 +48,7 @@ def customer_segments():
 def revenue_by_city():
     df = spark.sql(f"""
         SELECT city, SUM(total_spent) as revenue
-        FROM {CATALOG}.{SCHEMA}.gold_customer_metrics
+        FROM {CATALOG}.{SCHEMA}.customer_segments
         GROUP BY city
     """)
 
