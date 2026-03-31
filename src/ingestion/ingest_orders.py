@@ -1,10 +1,10 @@
 import sys, os, shutil
 sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 
-from pyspark.sql import SparkSession
 from src.config import get_config
+from src.spark_session import get_spark
 
-spark = SparkSession.builder.getOrCreate()
+spark = get_spark()
 
 config = get_config()
 

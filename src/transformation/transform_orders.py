@@ -5,10 +5,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import row_number, upper, col, rank, sum as _sum, count, max, avg, month, year, to_date, datediff, current_date, when
 from pyspark.sql.window import Window
 
-from pyspark.sql import SparkSession
 from src.config import get_config
+from src.spark_session import get_spark
 
-spark = SparkSession.builder.getOrCreate()
+spark = get_spark()
 
 config = get_config()
 

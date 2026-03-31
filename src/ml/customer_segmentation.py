@@ -1,16 +1,17 @@
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
 
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.clustering import KMeans
 
 from src.config import get_config
+from src.spark_session import get_spark
+
+spark = get_spark()
 
 config = get_config()
-spark = SparkSession.builder.getOrCreate()
 
 catalog = config["catalog"]
 schema = config["schema"]
