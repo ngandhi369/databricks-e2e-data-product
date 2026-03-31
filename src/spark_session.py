@@ -3,7 +3,7 @@ def get_spark():
     try:
         from databricks.connect import DatabricksSession
         print("🔗 Using Databricks Connect")
-        return DatabricksSession.builder.getOrCreate()
+        return DatabricksSession.builder.profile("DEFAULT").serverless(True).getOrCreate()
     except:
         from pyspark.sql import SparkSession
         print("⚡ Using SparkSession")

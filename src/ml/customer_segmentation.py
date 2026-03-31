@@ -11,6 +11,9 @@ from src.spark_session import get_spark
 
 spark = get_spark()
 
+print("Spark:", spark)
+print("SparkContext:", spark.sparkContext)
+
 config = get_config()
 
 catalog = config["catalog"]
@@ -20,6 +23,8 @@ gold_orders_df = spark.read.table(f"{catalog}.{schema}.gold_orders")
 
 feature_df = gold_orders_df.select("customer_id", "total_orders", "total_spent", "avg_order_value", "days_since_last_order").dropna()
 
+# feature_df.printSchema()
+feature_df = feature_df.fillna(0)
 
 # Converting to features vector for ML model input
 assembler = VectorAssembler(
