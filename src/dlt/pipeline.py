@@ -18,11 +18,11 @@ schema = config["schema"]
 volume_path = config["volume_path"]
 
 
-volume_file_path = f"{volume_path}orders.csv"
+volume_file_path = "dbfs:/Volumes/nirdosh_catalog_dev/nirdosh_schema_dev/nirdosh_volume_dev/orders.csv"
 
 # ------------- BRONZE --------------
 @dlt.table(
-    name="bronze_orders",
+    name="bronze_orders_dlt",
     comment="Raw orders data ingested from source system"
 )
 def bronze_orders():
@@ -37,7 +37,7 @@ def bronze_orders():
 # ------------- SILVER --------------
 
 @dlt.table(
-    name="silver_orders",
+    name="silver_orders_dlt",
     comment="Cleaned data"
 )
 def silver_orders():
@@ -51,7 +51,7 @@ def silver_orders():
 # ------------- GOLD --------------
 
 @dlt.table(
-    name="customer_metrics",
+    name="customer_metrics_dlt",
     comment="Customer insights"
 )
 def customer_metrics():
@@ -68,10 +68,10 @@ def customer_metrics():
 
 # ------------- VALIDATION --------------
 @dlt.table(
-    name="silver_orders",
+    name="validate_orders_dlt",
     comment="Cleaned data"
 )
 @dlt.expect("valid_amount", "amount > 0")
-def silver_orders():
+def validate_orders():
     return dlt.read("bronze_orders") \
         .withColumn("amount", col("amount").cast("double"))
