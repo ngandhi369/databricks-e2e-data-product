@@ -2,10 +2,8 @@ from itertools import count
 from os import name
 from tokenize import Comment
 
-from pandas import col
-
 import dlt
-from pysparl.sql.functions import *
+from pyspark.sql.functions import *
 
 from src.config import get_config
 
