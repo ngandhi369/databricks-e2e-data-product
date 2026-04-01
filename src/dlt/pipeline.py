@@ -23,7 +23,7 @@ volume_file_path = f"{volume_path}orders.csv"
 # ------------- BRONZE --------------
 @dlt.table(
     name="bronze_orders",
-    Comment="Raw orders data ingested from source system"
+    comment="Raw orders data ingested from source system"
 )
 def bronze_orders():
     return (
