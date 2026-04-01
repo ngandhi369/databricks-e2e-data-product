@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: nirdosh-databricks-api
+    env: python
+    buildcommand: "pip install -r requirements.txt"
+    startcommand: "bash start.sh"
