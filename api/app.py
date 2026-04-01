@@ -5,7 +5,7 @@ from typing import Optional
 from databricks.connect import DatabricksSession
 
 API_KEY_NAME = "nirdosh-dab-key"
-API_KEY = os.getenv("API_KEY", "mysecretkey")  # fallback for now
+API_KEY = os.getenv("API_KEY", "nirdosh0369")  # fallback for now
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
