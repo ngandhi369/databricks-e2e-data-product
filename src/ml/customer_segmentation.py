@@ -12,7 +12,6 @@ from src.spark_session import get_spark
 spark = get_spark()
 
 print("Spark:", spark)
-print("SparkContext:", spark.sparkContext)
 
 config = get_config()
 
