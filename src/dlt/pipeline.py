@@ -1,3 +1,6 @@
+import sys, os, shutil
+sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
+
 from itertools import count
 from os import name
 from tokenize import Comment
