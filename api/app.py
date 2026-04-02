@@ -1,13 +1,35 @@
 from fastapi import FastAPI, Query, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 import os
+from pydantic import BaseModel, Field
 from typing import Optional
+from functools import lru_cache
 from databricks.connect import DatabricksSession
 
 API_KEY_NAME = "nirdosh-dab-key"
 API_KEY = os.getenv("API_KEY", "nirdosh0369")  # fallback for now
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+
+class TopCustomerRequest(BaseModel):
+    city: Optional[str] = Field(None, description="Filter by city")
+    limit: int = Field(10, ge=1, le=100, description="Number of top customers to return")
+
+
+@lru_cache(maxsize=50)
+def get_top_customers_cached(city, limit, offset):
+    query = f"""
+        SELECT customer_id, city, total_spent
+        FROM {CATALOG}.{SCHEMA}.customer_segments
+    """
+    if city:
+        query += f" WHERE city = '{city}'"
+    query += f" ORDER BY total_spent DESC LIMIT {limit} OFFSET {offset}"
+
+    df = spark.sql(query)
+    return [row.asDict() for row in df.collect()]
+
 
 def get_api_key(api_key: str = Security(api_key_header)):
     if api_key == API_KEY:
@@ -27,20 +49,21 @@ SCHEMA = "nirdosh_schema_dev"
 @app.get("/top-customers")
 def top_customers(
     api_key: str = Security(get_api_key),
-    city: str = None,
-    limit: int = 10
+    city: Optional[str] = None,
+    limit: int = 10,
+    offset: int = 0
 ):
-    query = f"""
-        SELECT customer_id, city, total_spent
-        FROM {CATALOG}.{SCHEMA}.customer_segments
-    """
+    try:
+        result = get_top_customers_cached(city, limit, offset)
 
-    if city:
-        query += f" WHERE city = '{city}'"
-    query += f" ORDER BY total_spent DESC LIMIT {limit}"
-
-    df = spark.sql(query)
-    return [row.asDict() for row in df.collect()]    
+        return {
+            "status": "success",
+            "cached": True,
+            "count" : len(result),
+            "data": result
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 
