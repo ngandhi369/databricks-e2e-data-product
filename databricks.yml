@@ -4,7 +4,7 @@ bundle:
   name: nirdosh_dab
   uuid: 1de87a6f-b896-418d-b3a9-b44c0227cea0
   git: 
-    origin_url: https//github.com/ngandhi369/databricks-asset-bundle-deployment
+    origin_url: https//github.com/ngandhi369/databricks-e2e-data-product
     branch: master
 
 include:
