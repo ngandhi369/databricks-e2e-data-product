@@ -4,9 +4,47 @@ on:
   push:
     branches:
       - master
-
+  release:
+    types: [published]
+  
 jobs:
+  lint_and_validate:
+    name: Lint and Validate Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install lint dependencies
+        run: pip install ruff
+      
+      - name: Lint with ruff
+        run: ruff check src/ api/
+
+      - name: Install Databricks CLI
+        run: databricks/setup-cli@v0.236.0
+
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run test 
+        run: pytest tests/ -v --tb=short
+
+      - name: Validate bundle
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle validate --target dev
+
   deploy_bundle_to_dev_databricks:
+    name: Deploy to Dev
+    needs: lint_and_validate
+    if: github.event_name == 'push' 
     runs-on: ubuntu-latest
     environment: databricks-dev
 
@@ -23,14 +61,55 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Databricks CLI
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | bash
-
-      - name: Validate bundle
-        run: databricks bundle validate --target dev
+        run: databricks/setup-cli@v0.236.0
 
       - name: Deploy bundle
         run: databricks bundle deploy --target dev
 
+  Run_pipeline_on_dev_databricks:
+    name: Run Pipeline on Dev
+    needs: deploy_bundle_to_dev_databricks
+    runs-on: ubuntu-latest
+    environment: databricks-dev
+
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}  
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        run: databricks/setup-cli@v0.236.0
+      
       - name: Run data pipeline
         run: databricks bundle run city_order_pipeline --target dev
+
+  deploy_bundle_to_prod_databricks:
+    name: Deploy to Prod
+    needs: lint_and_validate
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    environment: databricks-prod
+
+    concurrency:
+      group: databricks-bundle-deploy-prod
+      cancel-in-progress: false
+
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        run: databricks/setup-cli@v0.236.0
+
+      - name: Validate bundle
+        run: databricks bundle validate --target prod
+
+      - name: Deploy bundle
+        run: databricks bundle deploy --target prod

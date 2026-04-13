@@ -5,6 +5,8 @@ common_params: &common_params
   - ${var.schema}
   - "--volume_path"
   - ${var.volume_path}
+  - "--workspace_file_path"
+  - ${var.workspace_file_path}
   
 resources:
   jobs:
@@ -22,21 +24,29 @@ resources:
       tags:
         project: city-order
         owner: nirdosh
+        tags: ${bundle.target}
 
       # Job-level notifications
       email_notifications:
         on_success:
-          - nirdoshgandhi02@gmail.com
+          - ${var.notification_email}
         on_failure:
-          - nirdoshgandhi02@gmail.com
+          - ${var.notification_email}
+        on_duration_warning_threshold_exceeded:
+          - ${var.notification_email}
       
       # Job timeout set to 10 minutes for demonstration purposes.
-      timeout_seconds: 600  
+      timeout_seconds: 2400
+      health:
+        rules:  
+          - metric: RUN_DURATION_SECONDS
+            op: "GREATER_THAN"
+            value: 1200
       
       tasks:
         - task_key: ingest
           spark_python_task:
-            python_file: ../../src/ingestion/ingest_orders.py
+            python_file: ${workspace.file_path}/src/ingestion/ingest_orders.py
             parameters: *common_params
           environment_key: default
           max_retries: 1
@@ -48,7 +58,7 @@ resources:
           depends_on:
             - task_key: ingest
           spark_python_task:
-            python_file: ../../src/transformation/transform_orders.py
+            python_file: ${workspace.file_path}/src/transformation/transform_orders.py
             parameters: *common_params
           environment_key: default
           max_retries: 1
@@ -60,7 +70,7 @@ resources:
           depends_on: 
             - task_key: transform
           spark_python_task:
-            python_file: ../../src/validation/validate_orders.py
+            python_file: ${workspace.file_path}/src/validation/validate_orders.py
             parameters: *common_params
           environment_key: default
           max_retries: 1
@@ -72,17 +82,21 @@ resources:
           depends_on: 
             - task_key: validate
           spark_python_task:
-            python_file: ../../src/ml/customer_segmentation.py
+            python_file: ${workspace.file_path}/src/ml/customer_segmentation.py
             parameters: *common_params
           environment_key: default
           max_retries: 1
           min_retry_interval_millis: 30000 # Minimum retry interval of 30 seconds between retries. 
           retry_on_timeout: true # Task will be retried if it hits the 10 minute timeout, up to 2 retries.
-          timeout_seconds: 600 # Task must finish in 10 minutes, or it fails/retries
+          timeout_seconds: 900 # Task must finish in 10 minutes, or it fails/retries
         
       # This is only needed if explicitly tied to serverless configs
       environments:
         - environment_key: default
           spec:
             environment_version: "4"
+            dependencies:
+              - mlflow
+              - scikit-learn
+              - pyspark
       

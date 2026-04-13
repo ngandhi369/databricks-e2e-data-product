@@ -1,0 +1,27 @@
+resources:
+  pipelines:
+    orders_dlt_pipeline:
+      name: orders-dlt-pipeline
+      
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      
+      configuration:
+        catalog: ${var.catalog}
+        schema: ${var.schema}
+        volume_path: ${var.volume_path}
+
+      libraries:
+        - file:
+            path: src/dlt/pipeline.py
+      
+      serverless: true
+
+      continuous: true
+
+      notifications:
+        - email_recipients:
+            - ${var.notification_email}
+          alerts:
+            - on-update-failure
+            - on-flow-failure
