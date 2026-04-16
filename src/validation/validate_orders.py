@@ -53,7 +53,7 @@ schema_errors = []
 for col_name, expected_type in EXPECTED_SCHEMA.items():
     if col_name not in actual_fields:
         schema_errors.append(f"Missing column: {col_name}")
-   elif not isinstance(gold_df.schema[col_name].dataType, type(expected_type)):
+    elif not isinstance(gold_df.schema[col_name].dataType, type(expected_type)):
         schema_errors.append(
             f"Type mismatch on '{col_name}': "
             f"expected {type(expected_type).__name__}, "
