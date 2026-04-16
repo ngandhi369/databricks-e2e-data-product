@@ -1,5 +1,5 @@
 [project]
-name = "nirdosh_asset_bundle"
+name = "databricks-e2e-data-product"
 version = "0.0.1"
 authors = [{ name = "nirdoshgandhi02@gmail.com" }]
 requires-python = ">=3.10,<3.13"
@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-main = "nirdosh_asset_bundle.main:main"
+main = "databricks-e2e-data-product.main:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -29,3 +29,10 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 120
+exclude = [
+    "src/dlt/pipeline.py",   # spark is DLT-injected, not a normal import
+]
+
+[tool.pytest.ini_options]          # ADD THIS SECTION
+testpaths  = ["tests"]             # where to look for tests
+pythonpath = ["."]   
