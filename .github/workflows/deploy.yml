@@ -30,15 +30,6 @@ jobs:
       - name: Run test 
         run: pytest tests/ -v --tb=short
 
-      - name: Install Databricks CLI
-        uses: databricks/setup-cli@main
-
-      - name: Validate bundle
-        env:
-          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: databricks bundle validate --target dev
-
   deploy_bundle_to_dev_databricks:
     name: Deploy to Dev
     needs: lint_and_validate
@@ -60,6 +51,9 @@ jobs:
 
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        run: databricks bundle validate --target dev
 
       - name: Deploy bundle
         run: databricks bundle deploy --target dev
