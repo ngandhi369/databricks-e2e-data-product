@@ -1,10 +1,6 @@
-from unittest import result
-
-from click import Option
 from fastapi import FastAPI, Query, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
 import os
-from pydantic import BaseModel, Field
 from typing import Optional
 from functools import lru_cache
 from databricks.connect import DatabricksSession
