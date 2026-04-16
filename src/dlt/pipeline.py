@@ -2,11 +2,13 @@ import dlt
 from pyspark.sql.functions import col, count, sum, avg, max
 import dlt.pipeline
 
+# spark is injected by the Databricks DLT runtime — not a normal import.
+# ruff does not know this, so we suppress F821 (undefined name) for this file.
+# ruff: noqa: F821
 
 catalog = spark.conf.get("catalog")
 schema = spark.conf.get("schema")
 volume_path = spark.conf.get("volume_path")
-
 volume_file_path = f"{volume_path}/orders.csv"
 
 
