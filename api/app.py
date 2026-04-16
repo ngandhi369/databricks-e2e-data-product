@@ -122,11 +122,11 @@ def get_customer(
 def revenue_by_city(
     api_key: str = Security(get_api_key),
 ):
-    from pyspark.sql.functions import col, lit, sum as _sum
-    
-    df = spark.read.table(f"{CATALOG}.{SCHEMA}.customer_segments")\
-        .groupBy("city")\
-        .agg(_sum("total_spent").alias("revenue"))
+    from pyspark.sql.functions import sum as _sum
+
+    df = spark.read.table(f"{CATALOG}.{SCHEMA}.customer_segments") \
+               .groupBy("city") \
+               .agg(_sum("total_spent").alias("revenue"))
     return [row.asDict() for row in df.collect()]
 
 
