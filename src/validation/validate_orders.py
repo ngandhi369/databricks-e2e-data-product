@@ -1,8 +1,9 @@
-import sys, os
+import sys
+import os
 sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 
 from pyspark.sql.functions import col, count, when, isnull
-from pyspark.sql.types import DoubleType, IntegerType, DateType, StringType
+from pyspark.sql.types import DoubleType, IntegerType, LongType, StringType
 
 from src.config import get_config
 from src.spark_session import get_spark
@@ -46,19 +47,17 @@ EXPECTED_SCHEMA = {
     "overall_rank": IntegerType(),
 }
 
-from pyspark.sql.types import LongType
-
 actual_fields = {f.name: type(f.dataType) for f in gold_df.schema.fields}
 schema_errors = []
 
 for col_name, expected_type in EXPECTED_SCHEMA.items():
     if col_name not in actual_fields:
         schema_errors.append(f"Missing column: {col_name}")
-    elif actual_fields[col_name] != type(expected_type):
+   elif not isinstance(gold_df.schema[col_name].dataType, type(expected_type)):
         schema_errors.append(
             f"Type mismatch on '{col_name}': "
             f"expected {type(expected_type).__name__}, "
-            f"got {actual_fields[col_name].__name__}"
+            f"got {type(gold_df.schema[col_name].dataType).__name__}"
         )
 
 if schema_errors:
