@@ -9,7 +9,6 @@ Run in CI (add to deploy.yml lint_and_validate job):
     pytest tests/ -v --tb=short
 """
 
-import pytest
 from src.spark_session import get_spark
 
 
