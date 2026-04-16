@@ -1,15 +1,9 @@
 [project]
-name = "databricks-e2e-data-product"
+name = "databricks_e2e_data_product"
 version = "0.0.1"
 authors = [{ name = "nirdoshgandhi02@gmail.com" }]
 requires-python = ">=3.10,<3.13"
-dependencies = [
-    # Any dependencies for jobs and pipelines in this project can be added here
-    # See also https://docs.databricks.com/dev-tools/bundles/library-dependencies
-    #
-    # LIMITATION: for pipelines, dependencies are cached during development;
-    # add dependencies to the 'environment' section of your pipeline.yml file instead
-]
+dependencies = []
 
 [dependency-groups]
 dev = [
@@ -19,9 +13,6 @@ dev = [
     "databricks-connect>=15.4,<15.5",
     "ipykernel",
 ]
-
-[project.scripts]
-main = "databricks-e2e-data-product.main:main"
 
 [build-system]
 requires = ["hatchling"]
