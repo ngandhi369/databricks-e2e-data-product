@@ -13,11 +13,10 @@ resources:
 
       libraries:
         - file:
-            path: src/dlt/pipeline.py
+            path: ../../src/dlt/pipeline.py
       
       serverless: true
-
-      continuous: true
+      continuous: false
 
       notifications:
         - email_recipients:
