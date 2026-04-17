@@ -65,31 +65,37 @@ pipeline = MLPipeline(stages=[assembler, scaler, kmeans])
 
 
 # Train + Log:
-
 with mlflow.start_run(run_name="customer_segmentation_kmeans"):
-
-    # Log params
     mlflow.log_param("k", N_CLUSTERS)
     mlflow.log_param("features", FEATURE_COLS)
     mlflow.log_param("seed", 42)
     mlflow.log_param("metric", "silhouette")
 
+    # Fit main model
     pipeline_model = pipeline.fit(feature_df)
     clustered_eval_df = pipeline_model.transform(feature_df)
 
+    # ── Log & Register BEFORE elbow loop evicts the cache ────────────────
+    mlflow.spark.log_model(
+        pipeline_model,
+        artifact_path="kmeans_pipeline",
+        registered_model_name=MODEL_NAME,
+        dfs_tmpdir=mlflow_tmp_dir,
+    )
+    print(f"✅ Model logged and registered as '{MODEL_NAME}'")
+
+    # ── Evaluate main model (uses DataFrame, not server-side ML object) ──
     evaluator = ClusteringEvaluator(
         predictionCol="prediction",
         featuresCol="scaled_features",
         metricName="silhouette",
         distanceMeasure="squaredEuclidean"
     )
-    
     silhouette = evaluator.evaluate(clustered_eval_df)
     mlflow.log_metric("silhouette_score", silhouette)
     print(f"✅ Silhouette score (k={N_CLUSTERS}): {silhouette:.4f}")
-    # Silhouette score: closer to 1.0 = well-separated clusters, near 0 = overlapping
-    
-    # ── Elbow Method (silhouette across k values) ─────────────────────────────
+
+    # ── Elbow method (fits new temp models — safe now, main model already saved) ──
     print("📊 Running elbow method...")
     for k in range(2, 7):
         temp_pipeline = MLPipeline(stages=[
@@ -101,8 +107,8 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
         temp_clustered = temp_model.transform(feature_df)
         score = evaluator.evaluate(temp_clustered)
         mlflow.log_metric("elbow_silhouette", score, step=k)
-        print(f"  k={k}  silhouette={score:.4f}")    
-   
+        print(f"  k={k}  silhouette={score:.4f}")
+
     # Log & Register Model:
     mlflow.spark.log_model(
         pipeline_model,
