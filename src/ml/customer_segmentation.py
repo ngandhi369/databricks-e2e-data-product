@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import mlflow
 import mlflow.spark
@@ -14,11 +14,12 @@ from src.config import get_config
 from src.spark_session import get_spark
 
 # SETUP:
-
 spark = get_spark()
 config = get_config()
 catalog = config["catalog"]
 schema = config["schema"]
+volume_path = config["volume_path"]
+mlflow_tmp_dir = volume_path.replace("dbfs:", "").rstrip("/") + "/mlflow_tmp"
 
 FEATURE_COLS = ["total_orders", "total_spent", "avg_order_value", "days_since_last_order"]
 N_CLUSTERS = 3
@@ -99,6 +100,7 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
         pipeline_model,
         artifact_path="kmeans_pipeline",
         registered_model_name=MODEL_NAME,
+        dfs_tmpdir=mlflow_tmp_dir,
     )
     print(f"✅ Model logged and registered as '{MODEL_NAME}'")
 
