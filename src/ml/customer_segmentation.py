@@ -24,7 +24,8 @@ N_CLUSTERS = 3
 MODEL_NAME = f"{catalog}.{schema}.customer_segmentation_kmeans"
 
 
-mlflow.set_experiment(f"/Shared/{catalog}/customer_segmentation")
+current_user = spark.sql("SELECT current_user()").collect()[0][0]
+mlflow.set_experiment(f"/Users/{current_user}/customer_segmentation")
 
 
 # Load Data:
