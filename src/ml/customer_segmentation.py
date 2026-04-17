@@ -70,7 +70,11 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
 
     # Training cost of the final model
     kmeans_model = pipeline_model.stages[-1]          # last stage is the fitted KMeans
-    training_cost  = kmeans_model.summary.trainingCost
+    
+    assembled_df   = pipeline_model.stages[0].transform(feature_df)   # VectorAssembler
+    scaled_eval_df = pipeline_model.stages[1].transform(assembled_df)  # StandardScaler
+
+    training_cost = kmeans_model.evaluate(scaled_eval_df).trainingCost
     mlflow.log_metric("training_cost", training_cost)
     print(f"✅ Training cost (k={N_CLUSTERS}): {training_cost:.4f}")
 
@@ -79,9 +83,12 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     for k in range(2, 7):
         temp_pipeline = MLPipeline(stages=[assembler, scaler,
                             KMeans(featuresCol="scaled_features", k=k, seed=42)])
-        temp_model = temp_pipeline.fit(feature_df)
-        cost = temp_model.stages[-1].summary.trainingCost
-        mlflow.log_metric("elbow_cost", cost, step=k)   
+        temp_model    = temp_pipeline.fit(feature_df)
+        temp_assembled = temp_pipeline.stages[0].transform(feature_df)
+        temp_scaled    = temp_pipeline.stages[1].transform(temp_assembled)
+        # FIX: use evaluate() here too — same cache eviction risk in elbow loop
+        cost = temp_model.stages[-1].evaluate(temp_scaled).trainingCost
+        mlflow.log_metric("elbow_cost", cost, step=k)
         print(f"  k={k}  cost={cost:.4f}")
 
     # Log & Register Model:
