@@ -3,12 +3,10 @@ import os
 import inspect
 
 try:
-    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 except NameError:
-    # Databricks serverless exec()s scripts without setting __file__,
-    # but compile(f.read(), filename, 'exec') sets co_filename correctly
     _file = inspect.currentframe().f_code.co_filename
-    _root = os.path.dirname(os.path.dirname(os.path.abspath(_file)))
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_file))))
 
 sys.path.insert(0, _root)
 
