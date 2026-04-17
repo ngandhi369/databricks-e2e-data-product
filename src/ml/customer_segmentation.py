@@ -68,9 +68,6 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     pipeline_model = pipeline.fit(feature_df)
     clustered_eval_df = pipeline_model.transform(feature_df)
 
-    kmeans_model = pipeline_model.stages[-1]
-    mlflow.log_param("cluster_centers", str(kmeans_model.clusterCenters()))
-
     evaluator = ClusteringEvaluator(
         predictionCol="prediction",
         featuresCol="scaled_features",
@@ -91,9 +88,9 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
             scaler,
             KMeans(featuresCol="scaled_features", k=k, seed=42)
         ])
-        temp_model      = temp_pipeline.fit(feature_df)
-        temp_clustered  = temp_model.transform(feature_df)
-        score           = evaluator.evaluate(temp_clustered)
+        temp_model = temp_pipeline.fit(feature_df)
+        temp_clustered = temp_model.transform(feature_df)
+        score = evaluator.evaluate(temp_clustered)
         mlflow.log_metric("elbow_silhouette", score, step=k)
         print(f"  k={k}  silhouette={score:.4f}")    
    
