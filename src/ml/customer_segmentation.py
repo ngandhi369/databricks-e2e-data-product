@@ -8,6 +8,7 @@ from pyspark.sql.functions import col, when
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.clustering import KMeans
 from pyspark.ml import Pipeline as MLPipeline
+from pyspark.ml.evaluation import ClusteringEvaluator
 
 from src.config import get_config
 from src.spark_session import get_spark
@@ -51,7 +52,6 @@ scaler = StandardScaler(
 )
 kmeans = KMeans(featuresCol="scaled_features", predictionCol="prediction", k=N_CLUSTERS, seed=42)
 
-
 pipeline = MLPipeline(stages=[assembler, scaler, kmeans])
 
 
@@ -63,34 +63,40 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     mlflow.log_param("k", N_CLUSTERS)
     mlflow.log_param("features", FEATURE_COLS)
     mlflow.log_param("seed", 42)
-    mlflow.log_param("scaler", "StandardScaler(withStd=True, withMean=True)")
+    mlflow.log_param("metric", "silhouette")
 
-    # Fit the full pipeline (assembler → scaler → kmeans)
     pipeline_model = pipeline.fit(feature_df)
+    clustered_eval_df = pipeline_model.transform(feature_df)
 
-    # Training cost of the final model
-    kmeans_model = pipeline_model.stages[-1]          # last stage is the fitted KMeans
+    kmeans_model = pipeline_model.stages[-1]
+    mlflow.log_param("cluster_centers", str(kmeans_model.clusterCenters()))
+
+    evaluator = ClusteringEvaluator(
+        predictionCol="prediction",
+        featuresCol="scaled_features",
+        metricName="silhouette",
+        distanceMeasure="squaredEuclidean"
+    )
     
-    assembled_df   = pipeline_model.stages[0].transform(feature_df)   # VectorAssembler
-    scaled_eval_df = pipeline_model.stages[1].transform(assembled_df)  # StandardScaler
-
-    training_cost = kmeans_model.evaluate(scaled_eval_df).trainingCost
-    mlflow.log_metric("training_cost", training_cost)
-    print(f"✅ Training cost (k={N_CLUSTERS}): {training_cost:.4f}")
-
-    # Elbow Method:
+    silhouette = evaluator.evaluate(clustered_eval_df)
+    mlflow.log_metric("silhouette_score", silhouette)
+    print(f"✅ Silhouette score (k={N_CLUSTERS}): {silhouette:.4f}")
+    # Silhouette score: closer to 1.0 = well-separated clusters, near 0 = overlapping
+    
+    # ── Elbow Method (silhouette across k values) ─────────────────────────────
     print("📊 Running elbow method...")
     for k in range(2, 7):
-        temp_pipeline = MLPipeline(stages=[assembler, scaler,
-                            KMeans(featuresCol="scaled_features", k=k, seed=42)])
-        temp_model    = temp_pipeline.fit(feature_df)
-        temp_assembled = temp_pipeline.stages[0].transform(feature_df)
-        temp_scaled    = temp_pipeline.stages[1].transform(temp_assembled)
-        # FIX: use evaluate() here too — same cache eviction risk in elbow loop
-        cost = temp_model.stages[-1].evaluate(temp_scaled).trainingCost
-        mlflow.log_metric("elbow_cost", cost, step=k)
-        print(f"  k={k}  cost={cost:.4f}")
-
+        temp_pipeline = MLPipeline(stages=[
+            assembler,
+            scaler,
+            KMeans(featuresCol="scaled_features", k=k, seed=42)
+        ])
+        temp_model      = temp_pipeline.fit(feature_df)
+        temp_clustered  = temp_model.transform(feature_df)
+        score           = evaluator.evaluate(temp_clustered)
+        mlflow.log_metric("elbow_silhouette", score, step=k)
+        print(f"  k={k}  silhouette={score:.4f}")    
+   
     # Log & Register Model:
     mlflow.spark.log_model(
         pipeline_model,
@@ -123,9 +129,9 @@ cluster_means = (
 
 # Build a dynamic mapping: cluster with highest avg spend → "High Value", etc.
 label_map = {
-    cluster_means[0]["prediction"]: "High Value",
-    cluster_means[1]["prediction"]: "Medium Value",
-    cluster_means[2]["prediction"]: "Low Value",
+    "High Value": cluster_means[0]["prediction"],
+    "Medium Value": cluster_means[1]["prediction"],
+    "Low Value": cluster_means[2]["prediction"],
 }
 print(f"📊 Cluster label mapping: {label_map}")
 
