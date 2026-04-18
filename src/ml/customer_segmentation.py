@@ -53,29 +53,31 @@ feature_df = (
 # Feature Engineering:
 
 assembler = VectorAssembler(inputCols=FEATURE_COLS, outputCol="features")
+assembled_df = assembler.transform(feature_df)
+
 scaler = StandardScaler(
     inputCol="features",
     outputCol="scaled_features",
     withStd=True,
     withMean=True
 )
-kmeans = KMeans(featuresCol="scaled_features", predictionCol="prediction", k=N_CLUSTERS, seed=42)
+kmeans = KMeans(
+    featuresCol="scaled_features",
+    predictionCol="prediction",
+    k=N_CLUSTERS,
+    seed=42
+)
+pipeline = MLPipeline(stages=[scaler, kmeans])
 
-pipeline = MLPipeline(stages=[assembler, scaler, kmeans])
+# Fit main model
+pipeline_model = pipeline.fit(assembled_df)
 
-
-# Train + Log:
 with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     mlflow.log_param("k", N_CLUSTERS)
-    mlflow.log_param("features", FEATURE_COLS)
+    mlflow.log_param("features", str(FEATURE_COLS))
     mlflow.log_param("seed", 42)
     mlflow.log_param("metric", "silhouette")
 
-    # Fit main model
-    pipeline_model = pipeline.fit(feature_df)
-    clustered_eval_df = pipeline_model.transform(feature_df)
-
-    # ── Log & Register BEFORE elbow loop evicts the cache ────────────────
     mlflow.spark.log_model(
         pipeline_model,
         artifact_path="kmeans_pipeline",
@@ -84,7 +86,8 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     )
     print(f"✅ Model logged and registered as '{MODEL_NAME}'")
 
-    # ── Evaluate main model (uses DataFrame, not server-side ML object) ──
+    clustered_eval_df = pipeline_model.transform(assembled_df)
+
     evaluator = ClusteringEvaluator(
         predictionCol="prediction",
         featuresCol="scaled_features",
@@ -94,35 +97,26 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     silhouette = evaluator.evaluate(clustered_eval_df)
     mlflow.log_metric("silhouette_score", silhouette)
     print(f"✅ Silhouette score (k={N_CLUSTERS}): {silhouette:.4f}")
+    
 
-    # ── Elbow method (fits new temp models — safe now, main model already saved) ──
+    # ── Elbow method ──────────────────────────────────────────────────────
     print("📊 Running elbow method...")
     for k in range(2, 7):
         temp_pipeline = MLPipeline(stages=[
-            assembler,
-            scaler,
+            StandardScaler(inputCol="features", outputCol="scaled_features",
+                           withStd=True, withMean=True),
             KMeans(featuresCol="scaled_features", k=k, seed=42)
         ])
-        temp_model = temp_pipeline.fit(feature_df)
-        temp_clustered = temp_model.transform(feature_df)
-        score = evaluator.evaluate(temp_clustered)
+        temp_model = temp_pipeline.fit(assembled_df)
+        score = evaluator.evaluate(temp_model.transform(assembled_df))
         mlflow.log_metric("elbow_silhouette", score, step=k)
         print(f"  k={k}  silhouette={score:.4f}")
-
-    # Log & Register Model:
-    mlflow.spark.log_model(
-        pipeline_model,
-        artifact_path="kmeans_pipeline",
-        registered_model_name=MODEL_NAME,
-        dfs_tmpdir=mlflow_tmp_dir,
-    )
-    print(f"✅ Model logged and registered as '{MODEL_NAME}'")
 
 
 # Predict:
 
 # Run inference with the fitted pipeline
-clustered_df = pipeline_model.transform(feature_df)   # adds `prediction` column (0, 1, 2)
+clustered_df = pipeline_model.transform(assembled_df) # adds `prediction` column (0, 1, 2)
 
 # Post-processing:
 
