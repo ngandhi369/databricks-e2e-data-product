@@ -18,6 +18,7 @@ from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.metrics import silhouette_score
 from src.config import get_config
 from src.spark_session import get_spark
+from mlflow.models.signature import infer_signature
 
 # SETUP
 spark = get_spark()
@@ -58,20 +59,22 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     mlflow.log_param("seed", 42)
     mlflow.log_param("metric", "silhouette")
 
-    sk_pipeline.fit(X)
+    labels = sk_pipeline.fit(X)
+    signature = infer_signature(X, labels)
 
     # Registers cleanly in UC Model Registry — no dfs_tmpdir needed
     mlflow.sklearn.log_model(
         sk_pipeline,
         artifact_path="kmeans_pipeline",
         registered_model_name=MODEL_NAME,
+        signature = signature,
+        input_example = X[:5],
     )
     print(f"✅ Model logged and registered as '{MODEL_NAME}'")
 
     # Evaluate
-    labels   = sk_pipeline.predict(X)
     X_scaled = sk_pipeline.named_steps["scaler"].transform(X)
-    sil      = silhouette_score(X_scaled, labels)
+    sil = silhouette_score(X_scaled, labels)
     mlflow.log_metric("silhouette_score", sil)
     print(f"✅ Silhouette score (k={N_CLUSTERS}): {sil:.4f}")
 
