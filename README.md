@@ -17,8 +17,10 @@
 2. **Transforms** it through a Bronze → Silver → Gold medallion lakehouse
 3. **Validates** data quality with schema, null, range and business rule checks
 4. **Segments** customers into High / Medium / Low Value using KMeans ML (logged in MLflow)
-5. **Serves** the results via a live FastAPI deployed on Render.com
-6. **Deploys** everything automatically via GitHub Actions on every push to master
+5. **Visualises** results on a Databricks SQL Dashboard with Genie AI for natural language querying
+6. **Delivers** the updated dashboard report automatically to subscribed users after every pipeline run
+7. **Serves** the results via a live FastAPI deployed on Render.com
+8. **Deploys** everything automatically via GitHub Actions on every push to master
 
 No manual steps. No notebooks. Pure production Python.
 
@@ -43,12 +45,20 @@ No manual steps. No notebooks. Pure production Python.
                                                  customer_segments
                                                   (Unity Catalog)
                                                          │
-                                                         ▼
-                                              FastAPI on Render.com
-                                              /top-customers
-                                              /customer-segments
-                                              /revenue-by-city
-                                              /customer/{id}
+                                          ┌──────────────┴──────────────┐
+                                          ▼                             ▼
+                               FastAPI on Render.com          Databricks SQL Dashboard
+                               /top-customers                 (Customer Intelligence)
+                               /customer-segments              │
+                               /revenue-by-city                ├── Top Customers
+                               /customer/{id}                  ├── Revenue by City
+                                                               ├── Recency Distribution
+                                                               ├── Customer Segmentation
+                                                               └── Genie AI (NL queries)
+                                                                        │
+                                                                        ▼
+                                                         Auto-delivered to subscribers
+                                                         after every hourly pipeline run
 
  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
  Parallel DLT Pipeline (declarative):
@@ -153,6 +163,27 @@ A declarative, parallel pipeline in `src/dlt/pipeline.py` that implements the sa
 | `customer_metrics_dlt` | Gold | Per-customer aggregates |
 
 DLT handles incremental processing, data quality metrics, and pipeline lineage automatically in the Databricks UI.
+
+---
+
+## 📊 Dashboard & Genie
+
+The **Customer Intelligence Dashboard** is a Databricks SQL Dashboard built on top of the Gold layer tables, providing business-consumable analytics without requiring SQL knowledge.
+
+| Visualisation | Description |
+|---|---|
+| Top Customers | Leaderboard of customers ranked by total spend |
+| Revenue by City | Bar chart of total revenue aggregated by city |
+| Recency Distribution | Customer activity status breakdown (Active / Warm) |
+| Customer Segmentation | Donut chart of ML-driven High / Medium / Low Value segments |
+
+### 🤖 Databricks Genie
+Genie is embedded directly in the dashboard via an **"Ask Genie"** button, enabling natural language querying over live Gold layer data. Stakeholders can ask questions like *"Which city has the highest revenue?"* or *"How many high-value customers are in Mumbai?"* without writing a single line of SQL.
+
+### 📬 Automated Report Delivery
+The dashboard is configured to **automatically deliver an updated report to subscribed users after every pipeline run** — which runs on an hourly schedule. This ensures stakeholders always have fresh, post-pipeline data in their inbox without logging into Databricks.
+
+To subscribe: open the dashboard → **Schedule** → add your email as a subscriber.
 
 ---
 
@@ -385,7 +416,9 @@ Tables created by the pipeline:
 | Transformation | PySpark |
 | Machine Learning | scikit-learn · KMeans · MLflow |
 | Model Registry | Unity Catalog Model Registry |
-| AI Assistant | Databricks Genie |
+| Dashboard | Databricks SQL Dashboard |
+| AI Assistant | Databricks Genie (natural language queries) |
+| Report Delivery | Databricks Dashboard Subscriptions (hourly) |
 | API Framework | FastAPI |
 | API Hosting | Render.com |
 | CI/CD | GitHub Actions |
