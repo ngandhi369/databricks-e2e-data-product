@@ -59,7 +59,8 @@ with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     mlflow.log_param("seed", 42)
     mlflow.log_param("metric", "silhouette")
 
-    labels = sk_pipeline.fit(X)
+    sk_pipeline.fit(X)
+    labels = sk_pipeline.predict(X)
     signature = infer_signature(X, labels)
 
     # Registers cleanly in UC Model Registry — no dfs_tmpdir needed
