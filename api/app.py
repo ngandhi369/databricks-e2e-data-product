@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Query, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
+
 import os
 from typing import Optional
 from functools import lru_cache
@@ -26,7 +27,7 @@ def get_api_key(api_key: str = Security(api_key_header)):
 
 app = FastAPI()
 
-spark = DatabricksSession.builder.profile("DEFAULT").serverless(True).getOrCreate()
+spark = DatabricksSession.builder.serverless(True).getOrCreate()
 
 CATALOG = "nirdosh_catalog_dev"
 SCHEMA = "nirdosh_schema_dev"
@@ -74,9 +75,7 @@ def top_customers(
             "data": result
         }
     except Exception as e:
-        return HTTPException(status_code=500, detail=str(e))
-
-
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/customer-segments")
 def customer_segments(
@@ -112,7 +111,7 @@ def get_customer(
 
     if not result:
         raise HTTPException(
-            status_code=status.HTTP_100_CONTINUE,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Customer: {customer_id} not found"
             )
     return result[0].asDict()
