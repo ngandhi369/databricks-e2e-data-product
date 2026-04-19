@@ -20,6 +20,6 @@ services:
       - key: DATABRICKS_CLUSTER_ID
         sync: false
       - key: PYTHON_VERSION
-        value: "3.11.0"
+        value: "3.12.9"
     
     autoDeploy: true
