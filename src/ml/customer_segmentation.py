@@ -16,7 +16,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.metrics import silhouette_score
-from pyspark.sql.functions import col, when
 from src.config import get_config
 from src.spark_session import get_spark
 
