@@ -131,13 +131,13 @@ databricks-e2e-data-product/
 
 ### Task 4 — ML Segmentation
 
-- Reads `gold_orders`, builds a Spark ML Pipeline: `VectorAssembler → StandardScaler → KMeans`
-- Trains KMeans (k=3) on `total_orders`, `total_spent`, `avg_order_value`, `days_since_last_order`
-- Evaluates with **silhouette score** (serverless-safe — avoids Spark Connect ML cache issues)
-- Runs elbow method (k=2–6), logs all metrics to **MLflow**
-- Registers the full pipeline model in **Unity Catalog Model Registry**
+- Reads `gold_orders`, collects feature columns to pandas
+- Fits a **scikit-learn Pipeline**: `StandardScaler → KMeans (k=3)` — avoids Spark Connect ML cache serialization issues
+- Infers MLflow model signature from input/output arrays (required by Unity Catalog Model Registry)
+- Evaluates with **silhouette score** and runs elbow method (k=2–6), logs all metrics to **MLflow**
+- Registers the sklearn pipeline in **Unity Catalog Model Registry** via `mlflow.sklearn.log_model`
 - Maps cluster IDs to business labels (High / Medium / Low Value) dynamically by average spend
-- Writes final labels to `customer_segments`
+- Converts predictions back to Spark, joins with `gold_orders`, writes `customer_segments`
 
 ---
 
@@ -158,7 +158,16 @@ DLT handles incremental processing, data quality metrics, and pipeline lineage a
 
 ## 🌐 REST API
 
-Deployed on **Render.com** at `https://nirdosh-databricks-api.onrender.com`. Connects to Databricks Serverless via `databricks-connect` for live query execution.
+Deployed on **Render.com** at `https://databricks-asset-bundle-deployment.onrender.com`. Connects to Databricks Serverless via `databricks-connect` for live query execution.
+
+### 🔗 Live URL
+
+```
+https://databricks-asset-bundle-deployment.onrender.com
+```
+
+- **Health check:** `GET /` — returns `{"status":"healthy","spark":"connected"}`
+- **Interactive docs (Swagger UI):** `/docs` — test all endpoints from the browser
 
 All endpoints (except `/`) require the API key header:
 
@@ -174,18 +183,40 @@ nirdosh-dab-key: <your-api-key>
 | `GET` | `/customer/{customer_id}` | Full profile for a single customer |
 | `GET` | `/revenue-by-city` | Total revenue aggregated by city |
 
-**Example:**
+**Example (curl / GitHub Codespace terminal):**
 
 ```bash
-curl -H "nirdosh-dab-key: your-api-key" \
-     "https://nirdosh-databricks-api.onrender.com/top-customers?city=Mumbai&limit=5"
+# Health check
+curl https://databricks-asset-bundle-deployment.onrender.com/
+
+# Top customers (pretty-printed)
+curl -s -H "nirdosh-dab-key: YOUR_API_KEY" \
+     "https://databricks-asset-bundle-deployment.onrender.com/top-customers?city=Mumbai&limit=5" \
+     | python3 -m json.tool
+
+# Revenue by city
+curl -s -H "nirdosh-dab-key: YOUR_API_KEY" \
+     https://databricks-asset-bundle-deployment.onrender.com/revenue-by-city \
+     | python3 -m json.tool
 ```
+
+> **Note:** The Render free tier spins down after 15 minutes of inactivity. The first request after idle may take 30–60 seconds to wake up.
+
+### Sharing API Access
+
+Share two things with your team:
+1. **Base URL:** `https://databricks-asset-bundle-deployment.onrender.com`
+2. **API key** — the value set as `API_KEY` in Render environment variables
+
+They can use curl, Postman, or the Swagger UI at `/docs` (click **Authorize 🔓**, enter the key in the `nirdosh-dab-key` field).
 
 ---
 
 ## 🤖 ML Model
 
-**Algorithm:** KMeans clustering (PySpark MLlib)
+**Algorithm:** KMeans clustering (scikit-learn)
+
+> The model uses scikit-learn instead of PySpark MLlib because `mlflow.spark.log_model` with Pipeline models is incompatible with Databricks Serverless / Spark Connect (server-side ML object cache limitation). scikit-learn serializes cleanly and registers in Unity Catalog identically.
 
 **Features:**
 
@@ -196,7 +227,7 @@ curl -H "nirdosh-dab-key: your-api-key" \
 | `avg_order_value` | Average spend per order |
 | `days_since_last_order` | Customer recency |
 
-**Pipeline stages:** `VectorAssembler → StandardScaler (μ=0, σ=1) → KMeans (k=3)`
+**Pipeline stages:** `StandardScaler (μ=0, σ=1) → KMeans (k=3, random_state=42)`
 
 **Evaluation metric:** Silhouette score (range -1 to 1; higher = better-separated clusters)
 
@@ -301,14 +332,21 @@ Create two environments in **Settings → Environments**:
 
 ## 🌿 Render.com Setup
 
+**Python version** — add a `.python-version` file to the repo root to pin Python 3.12 (Render reads this via pyenv before installing dependencies):
+
+```
+3.12.9
+```
+
 Set these environment variables in your Render service dashboard (never commit them):
 
 ```
-API_KEY              = <your chosen API key>
-DATABRICKS_HOST      = https://dbc-14ad825f-2de6.cloud.databricks.com
-DATABRICKS_TOKEN     = <your Databricks PAT>
-DATABRICKS_CLUSTER_ID = <your serverless cluster ID>
+API_KEY          = <your chosen API key>
+DATABRICKS_HOST  = https://dbc-14ad825f-2de6.cloud.databricks.com
+DATABRICKS_TOKEN = <your Databricks PAT>
 ```
+
+To reset the API key: Render Dashboard → your service → **Environment** → edit `API_KEY` → **Save Changes** (triggers automatic redeploy).
 
 ---
 
@@ -345,7 +383,7 @@ Tables created by the pipeline:
 | Storage | Unity Catalog · Delta Lake · DBFS Volumes |
 | Streaming | Delta Live Tables (DLT) |
 | Transformation | PySpark |
-| Machine Learning | PySpark MLlib · KMeans · MLflow |
+| Machine Learning | scikit-learn · KMeans · MLflow |
 | Model Registry | Unity Catalog Model Registry |
 | AI Assistant | Databricks Genie |
 | API Framework | FastAPI |
