@@ -11,37 +11,30 @@ except NameError:
 sys.path.insert(0, _root)
 
 import mlflow
-import mlflow.spark
+import mlflow.sklearn
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.pipeline import Pipeline as SklearnPipeline
+from sklearn.metrics import silhouette_score
 from pyspark.sql.functions import col, when
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.clustering import KMeans
-from pyspark.ml import Pipeline as MLPipeline
-from pyspark.ml.evaluation import ClusteringEvaluator
-
 from src.config import get_config
 from src.spark_session import get_spark
 
-# SETUP:
+# SETUP
 spark = get_spark()
 config = get_config()
 catalog = config["catalog"]
-schema = config["schema"]
-volume_path = config["volume_path"]
-mlflow_tmp_dir = volume_path.replace("dbfs:", "").rstrip("/") + "/mlflow_tmp"
+schema  = config["schema"]
 
 FEATURE_COLS = ["total_orders", "total_spent", "avg_order_value", "days_since_last_order"]
-N_CLUSTERS = 3
-MODEL_NAME = f"{catalog}.{schema}.customer_segmentation_kmeans"
-
+N_CLUSTERS   = 3
+MODEL_NAME   = f"{catalog}.{schema}.customer_segmentation_kmeans"
 
 current_user = spark.sql("SELECT current_user()").collect()[0][0]
 mlflow.set_experiment(f"/Users/{current_user}/customer_segmentation")
 
-
-# Load Data:
-
+# Load Data
 gold_orders_df = spark.read.table(f"{catalog}.{schema}.gold_orders")
-
 feature_df = (
     gold_orders_df
     .select("customer_id", *FEATURE_COLS)
@@ -49,112 +42,72 @@ feature_df = (
     .fillna(0)
 )
 
+# Collect to pandas — sklearn serializes cleanly, no Spark Connect ML cache issues
+feature_pdf = feature_df.toPandas()
+X = feature_pdf[FEATURE_COLS].values
 
-# Feature Engineering:
+# Build sklearn pipeline
+sk_pipeline = SklearnPipeline([
+    ("scaler", StandardScaler(with_std=True, with_mean=True)),
+    ("kmeans", KMeans(n_clusters=N_CLUSTERS, random_state=42, n_init=10)),
+])
 
-assembler = VectorAssembler(inputCols=FEATURE_COLS, outputCol="features")
-assembled_df = assembler.transform(feature_df)
-
-scaler = StandardScaler(
-    inputCol="features",
-    outputCol="scaled_features",
-    withStd=True,
-    withMean=True
-)
-kmeans = KMeans(
-    featuresCol="scaled_features",
-    predictionCol="prediction",
-    k=N_CLUSTERS,
-    seed=42
-)
-pipeline = MLPipeline(stages=[scaler, kmeans])
-
-# Fit main model
-pipeline_model = pipeline.fit(assembled_df)
-
+# Train + Log
 with mlflow.start_run(run_name="customer_segmentation_kmeans"):
     mlflow.log_param("k", N_CLUSTERS)
     mlflow.log_param("features", str(FEATURE_COLS))
     mlflow.log_param("seed", 42)
     mlflow.log_param("metric", "silhouette")
 
-    mlflow.spark.log_model(
-        pipeline_model,
+    sk_pipeline.fit(X)
+
+    # Registers cleanly in UC Model Registry — no dfs_tmpdir needed
+    mlflow.sklearn.log_model(
+        sk_pipeline,
         artifact_path="kmeans_pipeline",
         registered_model_name=MODEL_NAME,
-        dfs_tmpdir=mlflow_tmp_dir,
     )
     print(f"✅ Model logged and registered as '{MODEL_NAME}'")
 
-    clustered_eval_df = pipeline_model.transform(assembled_df)
+    # Evaluate
+    labels   = sk_pipeline.predict(X)
+    X_scaled = sk_pipeline.named_steps["scaler"].transform(X)
+    sil      = silhouette_score(X_scaled, labels)
+    mlflow.log_metric("silhouette_score", sil)
+    print(f"✅ Silhouette score (k={N_CLUSTERS}): {sil:.4f}")
 
-    evaluator = ClusteringEvaluator(
-        predictionCol="prediction",
-        featuresCol="scaled_features",
-        metricName="silhouette",
-        distanceMeasure="squaredEuclidean"
-    )
-    silhouette = evaluator.evaluate(clustered_eval_df)
-    mlflow.log_metric("silhouette_score", silhouette)
-    print(f"✅ Silhouette score (k={N_CLUSTERS}): {silhouette:.4f}")
-    
-
-    # ── Elbow method ──────────────────────────────────────────────────────
+    # Elbow method (pure sklearn — no Spark Connect involved)
     print("📊 Running elbow method...")
     for k in range(2, 7):
-        temp_pipeline = MLPipeline(stages=[
-            StandardScaler(inputCol="features", outputCol="scaled_features",
-                           withStd=True, withMean=True),
-            KMeans(featuresCol="scaled_features", k=k, seed=42)
-        ])
-        temp_model = temp_pipeline.fit(assembled_df)
-        score = evaluator.evaluate(temp_model.transform(assembled_df))
+        temp_labels = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(X_scaled)
+        score = silhouette_score(X_scaled, temp_labels)
         mlflow.log_metric("elbow_silhouette", score, step=k)
         print(f"  k={k}  silhouette={score:.4f}")
 
-
-# Predict:
-
-# Run inference with the fitted pipeline
-clustered_df = pipeline_model.transform(assembled_df) # adds `prediction` column (0, 1, 2)
-
-# Post-processing:
-
-result_df = gold_orders_df.join(
-    clustered_df.select("customer_id", "prediction"),
-    on="customer_id",
-    how="inner"
-)
-
-
+# Post-processing: map clusters to value labels by avg spend
+feature_pdf["prediction"] = labels
 cluster_means = (
-    result_df.groupBy("prediction")
-             .agg({"total_spent": "mean"})
-             .orderBy("avg(total_spent)", ascending=False)   # highest spend = rank 0
-             .collect()
+    feature_pdf.groupby("prediction")["total_spent"]
+    .mean()
+    .sort_values(ascending=False)
 )
-
-# Build a dynamic mapping: cluster with highest avg spend → "High Value", etc.
 label_map = {
-    "High Value": cluster_means[0]["prediction"],
-    "Medium Value": cluster_means[1]["prediction"],
-    "Low Value": cluster_means[2]["prediction"],
+    "High Value":   int(cluster_means.index[0]),
+    "Medium Value": int(cluster_means.index[1]),
+    "Low Value":    int(cluster_means.index[2]),
 }
 print(f"📊 Cluster label mapping: {label_map}")
 
-# Apply mapping using when/otherwise
-result_df = result_df.withColumn(
-    "customer_cluster",
-    when(col("prediction") == label_map["High Value"],   "High Value")
-    .when(col("prediction") == label_map["Medium Value"], "Medium Value")
-    .otherwise("Low Value")
+feature_pdf["customer_cluster"] = feature_pdf["prediction"].map(
+    {v: k for k, v in label_map.items()}
 )
 
-# Save:
+# Bring predictions back to Spark and join
+pred_spark_df = spark.createDataFrame(feature_pdf[["customer_id", "customer_cluster"]])
+result_df     = gold_orders_df.join(pred_spark_df, on="customer_id", how="inner")
 
-result_df.drop("prediction") \
-         .write.mode("overwrite") \
+# Save
+result_df.write.mode("overwrite") \
          .option("overwriteSchema", "true") \
          .saveAsTable(f"{catalog}.{schema}.customer_segments")
-
 print("✅ Customer segmentation saved to customer_segments table")
